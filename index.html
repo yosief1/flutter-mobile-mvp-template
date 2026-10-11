@@ -1,0 +1,912 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1020">
+  <title>AllCoach – Dein Fußball-Coach</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #141c2e;
+      --panel2: #1b263b;
+      --line: #29364b;
+      --text: #f3f6fc;
+      --muted: #9aa9bf;
+      --lime: #c7ff54;
+      --lime-dark: #263719;
+      --blue: #7aa7ff;
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible,
+    textarea:focus-visible, select:focus-visible {
+      outline: 2px solid var(--lime);
+      outline-offset: 3px;
+    }
+
+    .shell {
+      width: min(100%, 760px);
+      min-height: 100vh;
+      margin: auto;
+      padding: 0 18px 112px;
+    }
+
+    header {
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 26px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      background: var(--lime);
+      color: #0b1020;
+      border-radius: 14px;
+      font-size: 22px;
+      font-weight: 950;
+      transform: skew(-4deg);
+    }
+
+    .brand-name { font-weight: 900; letter-spacing: 1.4px; }
+    .brand-sub { font-size: 10px; color: var(--muted); letter-spacing: 1.5px; }
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border: 1px solid #40506a;
+      background: var(--panel2);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--lime);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    h1 { font-size: clamp(27px, 6vw, 36px); line-height: 1.15; margin: 7px 0; }
+    h2 { font-size: 22px; margin: 0 0 5px; }
+    h3 { font-size: 16px; margin: 0 0 7px; }
+    p { margin: 5px 0; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .page-heading { margin-bottom: 23px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: var(--panel2);
+      color: #d7e0ef;
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .pill.lime { background: var(--lime-dark); color: var(--lime); }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 19px;
+      margin-bottom: 14px;
+    }
+
+    .hero {
+      background:
+        radial-gradient(ellipse at 100% 0%, #324524 0%, transparent 48%),
+        linear-gradient(140deg, #1b2b32, #141c2e 65%);
+      border-color: #405239;
+      padding: 23px;
+      overflow: hidden;
+    }
+
+    .hero h2 { font-size: 25px; margin-top: 13px; max-width: 360px; }
+    .hero p { color: #c6d2d9; max-width: 400px; }
+    .hero-bottom {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .primary, .secondary, .icon-btn {
+      border: 0;
+      border-radius: 12px;
+      min-height: 44px;
+      padding: 11px 15px;
+      font-weight: 850;
+    }
+    .primary { background: var(--lime); color: #10170a; }
+    .primary:hover { background: #d7ff89; }
+    .secondary {
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid #35445b;
+    }
+    .full { width: 100%; }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 26px 0 13px;
+    }
+
+    .section-title h2 { font-size: 18px; margin: 0; }
+    .text-btn {
+      background: transparent;
+      color: var(--lime);
+      border: 0;
+      padding: 6px 0 6px 6px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .row { display: flex; gap: 12px; align-items: center; }
+    .between { justify-content: space-between; }
+    .grow { flex: 1; min-width: 0; }
+    .stack { display: grid; gap: 12px; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat {
+      padding: 14px 11px;
+      border-radius: 15px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    .stat-number { display: block; font-size: 23px; font-weight: 900; }
+    .stat-label { font-size: 11px; color: var(--muted); }
+
+    .task {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .task:last-child { border-bottom: 0; padding-bottom: 0; }
+    .check {
+      flex: 0 0 25px;
+      height: 25px;
+      border: 1.5px solid #63728a;
+      border-radius: 8px;
+      background: transparent;
+      color: #0b1020;
+      font-weight: 950;
+    }
+    .check.done { background: var(--lime); border-color: var(--lime); }
+    .task.done .task-name { text-decoration: line-through; color: var(--muted); }
+    .task-name { font-weight: 750; }
+    .task-info { font-size: 12px; color: var(--muted); }
+
+    .progress-track {
+      height: 7px;
+      background: #283449;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--lime);
+      border-radius: inherit;
+      transition: width .2s ease;
+    }
+
+    .session-top { display: flex; justify-content: space-between; gap: 12px; }
+    .session-icon {
+      display: grid;
+      place-items: center;
+      width: 45px;
+      height: 45px;
+      flex-shrink: 0;
+      border: 1px solid #405239;
+      background: #202e23;
+      color: var(--lime);
+      border-radius: 14px;
+      font-size: 21px;
+    }
+
+    .exercise {
+      border-top: 1px solid var(--line);
+      padding: 13px 0;
+    }
+    .exercise:first-of-type { margin-top: 15px; }
+    .exercise:last-child { padding-bottom: 0; }
+    .exercise-time { color: var(--lime); font-weight: 800; font-size: 12px; }
+
+    .field { display: grid; gap: 7px; margin: 14px 0; }
+    .field label { font-weight: 750; font-size: 13px; }
+    input, textarea, select {
+      width: 100%;
+      background: #0e1525;
+      border: 1px solid #34445d;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    textarea { min-height: 100px; resize: vertical; }
+
+    .notice {
+      border: 1px solid #465039;
+      background: #202b20;
+      color: #e0edcb;
+      border-radius: 13px;
+      padding: 12px 14px;
+      font-size: 12px;
+      margin: 13px 0;
+    }
+
+    .chat {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .bubble {
+      padding: 13px 15px;
+      border-radius: 16px;
+      max-width: 92%;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .bubble.coach { align-self: flex-start; background: var(--panel2); }
+    .bubble.user { align-self: flex-end; background: var(--lime-dark); color: #efffdc; }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+    .suggestion {
+      background: transparent;
+      color: #dbe5f7;
+      border: 1px solid #40506a;
+      border-radius: 99px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .chat-form { display: flex; align-items: center; gap: 8px; }
+    .chat-form input { flex: 1; min-width: 0; }
+
+    .metric {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .metric:last-child { border-bottom: 0; }
+    .metric-bar {
+      height: 5px;
+      background: #283449;
+      border-radius: 99px;
+      margin-top: 9px;
+      overflow: hidden;
+    }
+    .metric-bar span { display: block; height: 100%; background: var(--blue); }
+
+    .nav-wrap {
+      position: fixed;
+      z-index: 5;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(11,16,32,.96);
+      border-top: 1px solid var(--line);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      backdrop-filter: blur(15px);
+    }
+    .nav {
+      width: min(100%, 760px);
+      margin: auto;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 3px;
+    }
+    .nav button {
+      display: grid;
+      justify-items: center;
+      gap: 3px;
+      padding: 7px 1px;
+      background: transparent;
+      border: 0;
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 750;
+    }
+    .nav .nav-icon { font-size: 20px; line-height: 1.1; }
+    .nav button.active { color: var(--lime); background: #1a2630; }
+
+    .empty { text-align: center; padding: 25px 10px; color: var(--muted); }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 95px;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: none;
+      padding: 11px 16px;
+      background: #efffdc;
+      color: #17200e;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 13px;
+      box-shadow: 0 8px 30px #0006;
+    }
+
+    @media (min-width: 620px) {
+      .shell { padding-left: 26px; padding-right: 26px; }
+      .two-col { display: grid; grid-template-columns: 1.1fr .9fr; gap: 14px; align-items: start; }
+      .two-col .card { margin-bottom: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="logo">A</div>
+        <div>
+          <div class="brand-name">ALLCOACH</div>
+          <div class="brand-sub">PERSONAL FOOTBALL OS</div>
+        </div>
+      </div>
+      <div class="avatar" aria-label="Spielerprofil">Y</div>
+    </header>
+
+    <main id="app-view" aria-live="polite"></main>
+  </div>
+
+  <div class="nav-wrap">
+    <nav class="nav" aria-label="Hauptnavigation">
+      <button class="active" data-page="today"><span class="nav-icon">⌂</span>Heute</button>
+      <button data-page="training"><span class="nav-icon">⚽</span>Training</button>
+      <button data-page="analysis"><span class="nav-icon">◫</span>Analyse</button>
+      <button data-page="coach"><span class="nav-icon">✦</span>Coach</button>
+      <button data-page="development"><span class="nav-icon">↗</span>Entwicklung</button>
+    </nav>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script>
+    const STORAGE_KEY = "allcoach_mvp_v1";
+
+    const defaultState = {
+      page: "today",
+      completed: [],
+      reflections: [],
+      messages: [
+        {
+          role: "coach",
+          text: "Hey! Ich bin dein AllCoach-Demo-Coach. Woran möchtest du heute arbeiten? Ich kann dir Ideen für Technik, Flanken, 1-gegen-1 und Spielverständnis geben."
+        }
+      ]
+    };
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && typeof saved === "object") {
+          return { ...defaultState, ...saved };
+        }
+      } catch (error) {
+        console.warn("Gespeicherter Zustand konnte nicht geladen werden.");
+      }
+      return structuredClone(defaultState);
+    }
+
+    let state = loadState();
+
+    const tasks = [
+      { id: "warmup", title: "Aufwärmen mit Ball", detail: "5 Minuten · locker starten" },
+      { id: "control", title: "Ballkontrolle in Bewegung", detail: "3 × 60 Sekunden · beide Füße" },
+      { id: "cross", title: "Flanken nach kurzem Antritt", detail: "3 × 5 Versuche · Qualität vor Tempo" },
+      { id: "cooldown", title: "Locker auslaufen und reflektieren", detail: "5 Minuten · ruhig abschließen" }
+    ];
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+        showToast("Speichern im Browser nicht möglich.");
+      }
+    }
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;",
+        '"': "&quot;", "'": "&#39;"
+      }[char]));
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.style.display = "block";
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.style.display = "none", 2400);
+    }
+
+    function setPage(page) {
+      state.page = page;
+      saveState();
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function checkedCount() {
+      return tasks.filter(task => state.completed.includes(task.id)).length;
+    }
+
+    function taskMarkup(task) {
+      const done = state.completed.includes(task.id);
+      return `
+        <div class="task ${done ? "done" : ""}">
+          <button class="check ${done ? "done" : ""}" data-task="${task.id}"
+            aria-label="${done ? "Als offen markieren" : "Als erledigt markieren"}">
+            ${done ? "✓" : ""}
+          </button>
+          <div class="grow">
+            <div class="task-name">${task.title}</div>
+            <div class="task-info">${task.detail}</div>
+          </div>
+        </div>`;
+    }
+
+    function todayPage() {
+      const count = checkedCount();
+      const percent = Math.round(count / tasks.length * 100);
+      const date = new Intl.DateTimeFormat("de-DE", {
+        weekday: "long", day: "numeric", month: "long"
+      }).format(new Date());
+
+      return `
+        <div class="page-heading">
+          <div class="eyebrow">${esc(date)}</div>
+          <h1>Dein nächster Schritt.</h1>
+          <p class="muted">Eine gute Einheit. Eine klare Aufgabe. Schritt für Schritt besser.</p>
+        </div>
+
+        <section class="card hero">
+          <span class="pill lime">DEIN FOKUS HEUTE</span>
+          <h2>Flanken nach Bewegung</h2>
+          <p>Erst den Ball kontrollieren, dann in den Raum starten und gezielt flanken. Beidfüßig üben, ohne die Qualität zu verlieren.</p>
+          <div class="hero-bottom">
+            <div>
+              <div class="row">
+                <span class="pill">⚽ 25–30 Min.</span>
+                <span class="pill">Technik</span>
+              </div>
+              <p class="small muted">Außenverteidiger · Saison 2026/27</p>
+            </div>
+            <button class="primary" data-go="training">Los geht's ↗</button>
+          </div>
+        </section>
+
+        <div class="section-title">
+          <h2>Deine Einheit</h2>
+          <button class="text-btn" data-go="training">Details ansehen →</button>
+        </div>
+
+        <section class="card">
+          <div class="row between">
+            <div>
+              <h3>Trainings-Checkliste</h3>
+              <p class="muted small">Arbeite in deinem Tempo und hake ab, was du erledigt hast.</p>
+            </div>
+            <strong style="color:var(--lime)">${count}/${tasks.length}</strong>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
+          ${tasks.map(taskMarkup).join("")}
+          <p class="small muted" style="margin-top:13px">${percent === 100 ? "Einheit abgeschlossen. Stark – nimm dir Zeit für die Erholung." : percent + "% der Checkliste erledigt."}</p>
+        </section>
+
+        <div class="section-title"><h2>Dein Überblick</h2></div>
+        <div class="stat-grid">
+          <div class="stat">
+            <span class="stat-number">${count}</span>
+            <span class="stat-label">Aufgaben heute</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">${state.reflections.length}</span>
+            <span class="stat-label">Spielreflexionen</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">${percent}%</span>
+            <span class="stat-label">Einheitsfortschritt</span>
+          </div>
+        </div>
+
+        <div class="section-title"><h2>Was brauchst du heute?</h2></div>
+        <div class="stack">
+          <button class="secondary full" data-go="coach">✦ Den Coach fragen</button>
+          <button class="secondary full" data-go="analysis">◫ Spiel oder Training reflektieren</button>
+        </div>`;
+    }
+
+    function trainingPage() {
+      return `
+        <div class="page-heading">
+          <div class="eyebrow">TRAININGSZENTRUM</div>
+          <h1>Training mit Plan.</h1>
+          <p class="muted">Ein klarer Schwerpunkt statt wahlloser Übungen.</p>
+        </div>
+
+        <section class="card">
+          <div class="session-top">
+            <div class="grow">
+              <span class="pill lime">SCHWERPUNKT A</span>
+              <h2 style="margin-top:12px">Flanken & Ballkontrolle</h2>
+              <p class="muted">Außenverteidiger · Technik mit Bewegung</p>
+            </div>
+            <div class="session-icon">⚽</div>
+          </div>
+          <div class="row" style="margin-top:15px">
+            <span class="pill">25–30 Min.</span>
+            <span class="pill">Ball + Platz</span>
+          </div>
+
+          <div class="exercise">
+            <div class="row between">
+              <h3>1. Aufwärmen mit Ball</h3><span class="exercise-time">5 Min.</span>
+            </div>
+            <p class="muted small">Locker dribbeln, Richtungswechsel und sanfte Mobilisation. Beginne ruhig und steigere dich langsam.</p>
+          </div>
+          <div class="exercise">
+            <div class="row between">
+              <h3>2. Erster Kontakt</h3><span class="exercise-time">6 Min.</span>
+            </div>
+            <p class="muted small">Spiele den Ball gegen eine Wand oder zu einem Partner. Nimm ihn mit dem ersten Kontakt seitlich in den freien Raum mit. Nutze beide Füße.</p>
+          </div>
+          <div class="exercise">
+            <div class="row between">
+              <h3>3. Antritt + Flanke</h3><span class="exercise-time">10 Min.</span>
+            </div>
+            <p class="muted small">Starte locker mit dem Ball, lege ihn dir vor und flanke in ein vorher bestimmtes Zielgebiet. Mache 3 Serien mit je 5 Versuchen und erhole dich dazwischen.</p>
+          </div>
+          <div class="exercise">
+            <div class="row between">
+              <h3>4. Abschluss der Einheit</h3><span class="exercise-time">4–6 Min.</span>
+            </div>
+            <p class="muted small">Locker gehen oder auslaufen. Überlege: Waren meine Flanken kontrolliert? Was möchte ich beim nächsten Mal verbessern?</p>
+          </div>
+        </section>
+
+        <div class="notice">Passe das Training an deine Energie und deinen Teamtrainingsplan an. Bei Schmerzen oder ungewöhnlichen Beschwerden hör auf und sprich mit einem Erwachsenen oder Trainer.</div>
+
+        <section class="card">
+          <h3>Einheit abschließen</h3>
+          <p class="muted small">Markiere die Aufgaben auf der Heute-Seite, sobald du sie erledigt hast.</p>
+          <button class="primary full" data-go="today" style="margin-top:12px">Zur Checkliste</button>
+        </section>
+
+        <div class="section-title"><h2>Weitere Schwerpunkte</h2></div>
+        <section class="card">
+          <h3>Defensives 1-gegen-1</h3>
+          <p class="muted small">Körperstellung, Abstand halten und den Gegner nach außen lenken. Am besten mit Trainer oder Partner üben.</p>
+          <div style="margin-top:12px"><span class="pill">Taktik</span> <span class="pill">Partner sinnvoll</span></div>
+        </section>
+        <section class="card">
+          <h3>Spielverständnis</h3>
+          <p class="muted small">Beobachte vor der Ballannahme deine Umgebung: Wo ist Druck? Wo ist der freie Raum? Welche Passoptionen gibt es?</p>
+          <div style="margin-top:12px"><span class="pill">Entscheidungen</span> <span class="pill">Mit Ball & ohne Ball</span></div>
+        </section>`;
+    }
+
+    function analysisPage() {
+      const latest = state.reflections[0];
+
+      return `
+        <div class="page-heading">
+          <div class="eyebrow">SPIELVERSTAND</div>
+          <h1>Analysieren. Lernen. Weiter.</h1>
+          <p class="muted">Halte deine Beobachtungen fest – ehrlich und ohne erfundene Bewertungen.</p>
+        </div>
+
+        <div class="notice">Die Videoanalyse ist noch nicht angeschlossen. Diese Version speichert deine eigenen Spiel- und Trainingsreflexionen in deinem Browser.</div>
+
+        <section class="card">
+          <h2>Neue Reflexion</h2>
+          <p class="muted small">Denke an eine konkrete Spielsituation oder Trainingseinheit.</p>
+          <form id="reflection-form">
+            <div class="field">
+              <label for="reflection-type">Was reflektierst du?</label>
+              <select id="reflection-type">
+                <option>Spiel</option>
+                <option>Training</option>
+                <option>Einzelübung</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="reflection-strength">Was lief gut?</label>
+              <textarea id="reflection-strength" required maxlength="1000" placeholder="Zum Beispiel: Ich habe vor der Ballannahme öfter nach links und rechts geschaut."></textarea>
+            </div>
+            <div class="field">
+              <label for="reflection-improve">Was möchtest du verbessern?</label>
+              <textarea id="reflection-improve" maxlength="1000" placeholder="Zum Beispiel: Bei Flanken war mein erster Kontakt manchmal zu weit."></textarea>
+            </div>
+            <button class="primary full" type="submit">Reflexion speichern</button>
+          </form>
+        </section>
+
+        <div class="section-title"><h2>Deine Reflexionen</h2><span class="pill">${state.reflections.length} gespeichert</span></div>
+        ${state.reflections.length ? state.reflections.map(item => `
+          <section class="card">
+            <div class="row between">
+              <span class="pill">${esc(item.type)}</span>
+              <span class="muted small">${esc(item.date)}</span>
+            </div>
+            <h3 style="margin-top:13px">Das lief gut</h3>
+            <p>${esc(item.strength)}</p>
+            ${item.improve ? `<h3 style="margin-top:14px">Nächster Schwerpunkt</h3><p>${esc(item.improve)}</p>` : ""}
+          </section>`).join("") : `
+          <section class="card empty">
+            <div style="font-size:28px">◫</div>
+            <h3>Noch keine Reflexionen</h3>
+            <p class="small">Nach deiner nächsten Einheit kannst du hier anfangen.</p>
+          </section>`}`;
+    }
+
+    function coachPage() {
+      return `
+        <div class="page-heading">
+          <div class="eyebrow">DEIN DIGITALER ASSISTENT</div>
+          <h1>Frag deinen Coach.</h1>
+          <p class="muted">Formuliere eine Fußballfrage oder wähle ein Thema.</p>
+        </div>
+
+        <div class="notice">Demo-Modus: Die Antworten werden lokal mit einfachen Regeln erstellt. Dieser Chat ist noch nicht mit einer echten KI verbunden.</div>
+
+        <section class="card">
+          <div class="row">
+            <div class="session-icon">✦</div>
+            <div class="grow">
+              <h3>AllCoach</h3>
+              <p class="muted small">Dein Fußball-Coach · Demo-Version</p>
+            </div>
+            <span class="pill">Vorschau</span>
+          </div>
+
+          <div id="chat-messages" class="chat">
+            ${state.messages.map(message => `
+              <div class="bubble ${message.role === "user" ? "user" : "coach"}">${esc(message.text)}</div>
+            `).join("")}
+          </div>
+
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Wie verbessere ich meine Flanken?">Flanken verbessern</button>
+            <button class="suggestion" data-prompt="Wie verteidige ich im 1-gegen-1?">1-gegen-1</button>
+            <button class="suggestion" data-prompt="Wie verbessere ich mein Spielverständnis?">Spielverständnis</button>
+            <button class="suggestion" data-prompt="Wie kontrolliere ich den Ball besser?">Ballkontrolle</button>
+          </div>
+
+          <form id="chat-form" class="chat-form">
+            <input id="chat-input" maxlength="500" autocomplete="off" aria-label="Deine Frage" placeholder="Deine Fußballfrage …" required>
+            <button class="primary" type="submit" aria-label="Frage senden">Senden</button>
+          </form>
+        </section>`;
+    }
+
+    function developmentPage() {
+      const count = checkedCount();
+      const percent = Math.round(count / tasks.length * 100);
+      const total = state.reflections.length;
+
+      return `
+        <div class="page-heading">
+          <div class="eyebrow">DEIN WEG</div>
+          <h1>Entwicklung statt Zufall.</h1>
+          <p class="muted">Verfolge deine Gewohnheiten und erkenne, woran du als Nächstes arbeiten willst.</p>
+        </div>
+
+        <section class="card">
+          <span class="pill lime">DEIN AKTUELLER STAND</span>
+          <h2 style="margin-top:12px">Trainingskonstanz</h2>
+          <p class="muted small">Fortschritt der aktuellen Checkliste. Kein Leistungs- oder Scout-Rating.</p>
+          <div class="row between" style="margin-top:18px">
+            <strong style="font-size:32px">${percent}%</strong>
+            <span class="muted small">${count} von ${tasks.length} Aufgaben</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
+        </section>
+
+        <div class="section-title"><h2>Deine Bereiche</h2></div>
+        <section class="card">
+          <div class="metric">
+            <div class="row between"><strong>Technik</strong><span class="pill">Trainingsfokus</span></div>
+            <p class="muted small">Ballkontrolle, erster Kontakt und Flanken gezielt üben.</p>
+            <div class="metric-bar"><span style="width:66%"></span></div>
+          </div>
+          <div class="metric">
+            <div class="row between"><strong>Taktik</strong><span class="pill">Trainingsfokus</span></div>
+            <p class="muted small">Abstände, Körperstellung und freie Passwege bewusst wahrnehmen.</p>
+            <div class="metric-bar"><span style="width:58%"></span></div>
+          </div>
+          <div class="metric">
+            <div class="row between"><strong>Entscheidungen</strong><span class="pill">Trainingsfokus</span></div>
+            <p class="muted small">Vor der Ballannahme scannen und die nächste Aktion planen.</p>
+            <div class="metric-bar"><span style="width:52%"></span></div>
+          </div>
+          <p class="muted small">Die Balken sind beispielhafte Darstellungen, keine gemessenen Spielerwerte.</p>
+        </section>
+
+        <div class="stat-grid">
+          <div class="stat">
+            <span class="stat-number">${count}</span>
+            <span class="stat-label">Abgehakte Aufgaben</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">${total}</span>
+            <span class="stat-label">Reflexionen</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">${state.messages.filter(m => m.role === "user").length}</span>
+            <span class="stat-label">Coach-Fragen</span>
+          </div>
+        </div>
+
+        <div class="section-title"><h2>Dein nächster Schritt</h2></div>
+        <section class="card">
+          <h3>Qualität vor Menge</h3>
+          <p class="muted">Wähle einen Schwerpunkt, übe konzentriert und notiere anschließend, was funktioniert hat. Plane auch Erholung zwischen intensiven Einheiten ein.</p>
+          <button class="primary full" style="margin-top:14px" data-go="analysis">Neue Reflexion beginnen</button>
+        </section>
+
+        <button class="secondary full" id="reset-progress">Demo-Fortschritt zurücksetzen</button>`;
+    }
+
+    function getCoachReply(question) {
+      const q = question.toLowerCase();
+
+      if (q.includes("flank")) {
+        return "Dein Trainingsimpuls für Flanken:\n\n1. Nimm den Ball kontrolliert mit.\n2. Schau kurz auf dein Zielgebiet.\n3. Flanke aus einer stabilen Bewegung.\n4. Wiederhole wenige Versuche mit voller Konzentration.\n\nAchte darauf, ob du das Zielgebiet triffst – nicht nur darauf, wie hart du schießt.";
+      }
+      if (q.includes("1-gegen-1") || q.includes("zweikampf") || q.includes("verteidig")) {
+        return "Im defensiven 1-gegen-1 helfen dir diese Grundlagen:\n\n1. Sei seitlich und leicht versetzt zum Gegner.\n2. Halte einen kontrollierbaren Abstand.\n3. Beobachte Ball und Bewegung des Gegners.\n4. Versuche, den Weg zum gefährlichen Raum zu schließen.\n\nÜbe das mit einem Partner und steigere das Tempo schrittweise.";
+      }
+      if (q.includes("spielverständ") || q.includes("taktik") || q.includes("scann") || q.includes("entscheidung")) {
+        return "Eine gute Gewohnheit für dein Spielverständnis:\n\nVor der Ballannahme einmal über die Schulter schauen. Merke dir, wo Gegner, Mitspieler und freie Räume sind. Frage dich danach: Welche Optionen habe ich – und welche ist am sichersten oder sinnvollsten?\n\nVersuche im nächsten Training, diese Gewohnheit bewusst in mehreren Spielsituationen einzusetzen.";
+      }
+      if (q.includes("ballkontroll") || q.includes("technik") || q.includes("erster kontakt")) {
+        return "Für deine Ballkontrolle:\n\n1. Arbeite mit beiden Füßen.\n2. Richte deinen ersten Kontakt in einen freien Raum.\n3. Halte den Ball nah genug, um schnell weiterspielen zu können.\n4. Hebe zwischendurch den Kopf, statt dauerhaft auf den Ball zu schauen.\n\nBeginne kontrolliert und erhöhe die Schwierigkeit erst, wenn die Ausführung stabil bleibt.";
+      }
+      if (q.includes("schnell") || q.includes("ausdauer") || q.includes("fitness")) {
+        return "Für deine Athletik zählen regelmäßiges, altersgerechtes Training und ausreichende Erholung. Steigere Belastungen langsam und vermeide zusätzliche harte Einheiten direkt vor einem intensiven Teamtraining oder Spiel. Wenn du dich ungewöhnlich erschöpft fühlst, pausiere und besprich es mit deinem Trainer oder einem Erwachsenen.";
+      }
+
+      return "Lass uns dein Ziel genauer machen. Wähle einen Schwerpunkt wie Flanken, Ballkontrolle, defensives 1-gegen-1 oder Spielverständnis. Dann können wir eine konkrete Übung und einen klaren Beobachtungspunkt festlegen.\n\nHinweis: Ich bin in dieser Vorschau ein regelbasierter Demo-Coach und noch keine echte KI.";
+    }
+
+    function sendMessage(message) {
+      const clean = message.trim();
+      if (!clean) return;
+      state.messages.push({ role: "user", text: clean });
+      state.messages.push({ role: "coach", text: getCoachReply(clean) });
+      state.messages = state.messages.slice(-30);
+      saveState();
+      render();
+      const messages = document.getElementById("chat-messages");
+      if (messages) messages.scrollTop = messages.scrollHeight;
+    }
+
+    function render() {
+      const views = {
+        today: todayPage,
+        training: trainingPage,
+        analysis: analysisPage,
+        coach: coachPage,
+        development: developmentPage
+      };
+
+      document.getElementById("app-view").innerHTML = (views[state.page] || todayPage)();
+
+      document.querySelectorAll(".nav button").forEach(button => {
+        const active = button.dataset.page === state.page;
+        button.classList.toggle("active", active);
+        if (active) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
+      });
+    }
+
+    document.addEventListener("click", event => {
+      const nav = event.target.closest("[data-page]");
+      if (nav) {
+        setPage(nav.dataset.page);
+        return;
+      }
+
+      const go = event.target.closest("[data-go]");
+      if (go) {
+        setPage(go.dataset.go);
+        return;
+      }
+
+      const taskButton = event.target.closest("[data-task]");
+      if (taskButton) {
+        const id = taskButton.dataset.task;
+        state.completed = state.completed.includes(id)
+          ? state.completed.filter(item => item !== id)
+          : [...state.completed, id];
+        saveState();
+        render();
+        return;
+      }
+
+      const prompt = event.target.closest("[data-prompt]");
+      if (prompt) {
+        sendMessage(prompt.dataset.prompt);
+        return;
+      }
+
+      if (event.target.closest("#reset-progress")) {
+        if (confirm("Demo-Fortschritt, Reflexionen und Chat-Verlauf zurücksetzen?")) {
+          state.completed = [];
+          state.reflections = [];
+          state.messages = [defaultState.messages[0]];
+          saveState();
+          render();
+          showToast("Demo-Fortschritt zurückgesetzt.");
+        }
+      }
+    });
+
+    document.addEventListener("submit", event => {
+      if (event.target.id === "reflection-form") {
+        event.preventDefault();
+        const strength = document.getElementById("reflection-strength").value.trim();
+        const improve = document.getElementById("reflection-improve").value.trim();
+        if (!strength) return;
+
+        state.reflections.unshift({
+          type: document.getElementById("reflection-type").value,
+          strength,
+          improve,
+          date: new Intl.DateTimeFormat("de-DE", {
+            day: "2-digit", month: "2-digit", year: "numeric"
+          }).format(new Date())
+        });
+        state.reflections = state.reflections.slice(0, 50);
+        saveState();
+        render();
+        showToast("Reflexion gespeichert.");
+      }
+
+      if (event.target.id === "chat-form") {
+        event.preventDefault();
+        const input = document.getElementById("chat-input");
+        const message = input.value;
+        sendMessage(message);
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
