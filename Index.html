@@ -1,0 +1,210 @@
+
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="theme-color" content="#101a2b">
+  <meta name="description" content="AllCoach – dein persönlicher Fußball-Coach für Training, Spielanalyse und Entwicklung.">
+
+  <title>AllCoach – Dein Fußball-Coach</title>
+
+  <link rel="icon" href="./assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">
+    Zum Inhalt springen
+  </a>
+
+  <div class="app-shell">
+
+    <!-- Seitenleiste -->
+    <aside class="sidebar" id="sidebar" aria-label="Hauptnavigation">
+
+      <a class="brand" href="#/today" aria-label="AllCoach Startseite">
+        <span class="brand-mark" aria-hidden="true">A<span>+</span></span>
+
+        <span class="brand-copy">
+          <strong>AllCoach</strong>
+          <small>YOUR GAME. YOUR GROWTH.</small>
+        </span>
+      </a>
+
+      <div class="sidebar-label">DEIN BEREICH</div>
+
+      <nav class="primary-nav" aria-label="Hauptmenü">
+        <a class="nav-link is-active"
+           href="#/today"
+           data-route="today"
+           aria-current="page">
+          <span class="nav-icon" aria-hidden="true">◫</span>
+          <span>Heute</span>
+        </a>
+
+        <a class="nav-link" href="#/training" data-route="training">
+          <span class="nav-icon" aria-hidden="true">◎</span>
+          <span>Training</span>
+        </a>
+
+        <a class="nav-link" href="#/analysis" data-route="analysis">
+          <span class="nav-icon" aria-hidden="true">⌁</span>
+          <span>Analyse</span>
+        </a>
+
+        <a class="nav-link" href="#/coach" data-route="coach">
+          <span class="nav-icon" aria-hidden="true">✳</span>
+          <span>Coach-KI</span>
+        </a>
+
+        <a class="nav-link" href="#/development" data-route="development">
+          <span class="nav-icon" aria-hidden="true">↗</span>
+          <span>Entwicklung</span>
+        </a>
+      </nav>
+
+      <!-- Persönlicher Bereich -->
+      <div class="sidebar-bottom">
+
+        <div class="sidebar-label">PERSÖNLICH</div>
+
+        <a class="nav-link" href="#/profile" data-route="profile">
+          <span class="nav-icon" aria-hidden="true">◉</span>
+          <span>Spielerprofil</span>
+        </a>
+
+        <div class="sidebar-status">
+          <span class="status-dot" aria-hidden="true"></span>
+
+          <span>
+            <strong>Dein Weg nach oben</strong>
+            <small>Schritt für Schritt besser.</small>
+          </span>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- Hauptbereich -->
+    <div class="main-column">
+
+      <!-- Kopfzeile -->
+      <header class="topbar">
+
+        <div class="topbar-heading">
+          <p class="eyebrow" id="page-eyebrow">
+            DEIN LEISTUNGSZENTRUM
+          </p>
+
+          <h1 id="page-title">Heute</h1>
+        </div>
+
+        <div class="topbar-actions">
+          <span class="date-label" id="current-date">
+            Dein Fußballtag
+          </span>
+
+          <a class="avatar-link"
+             href="#/profile"
+             data-route="profile"
+             aria-label="Spielerprofil öffnen">
+
+            <span class="avatar" id="player-avatar">Y</span>
+          </a>
+        </div>
+
+      </header>
+
+      <!-- Seiteninhalt -->
+      <main id="main-content" class="main-content" tabindex="-1">
+
+        <section class="loading-panel"
+                 aria-live="polite"
+                 aria-label="AllCoach wird geladen">
+
+          <div class="loading-mark" aria-hidden="true">A<span>+</span></div>
+
+          <h2>Dein Spiel. Deine Entwicklung.</h2>
+
+          <p>AllCoach wird vorbereitet …</p>
+
+          <noscript>
+            <p>
+              Bitte aktiviere JavaScript, damit AllCoach Training,
+              Analyse und Coach-KI anzeigen kann.
+            </p>
+          </noscript>
+
+        </section>
+
+        <!-- Hier erscheinen die Inhalte der einzelnen Seiten -->
+        <div id="page-content" aria-live="polite"></div>
+
+      </main>
+
+      <!-- Fußzeile -->
+      <footer class="app-footer">
+        <span>ALLCOACH <span aria-hidden="true">/</span> BETA</span>
+        <span>Entwickelt für deinen nächsten Schritt.</span>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- Navigation für Smartphones -->
+  <nav class="mobile-nav" aria-label="Mobile Navigation">
+
+    <a class="mobile-nav-link is-active"
+       href="#/today"
+       data-route="today"
+       aria-current="page">
+      <span aria-hidden="true">◫</span>
+      <small>Heute</small>
+    </a>
+
+    <a class="mobile-nav-link"
+       href="#/training"
+       data-route="training">
+      <span aria-hidden="true">◎</span>
+      <small>Training</small>
+    </a>
+
+    <a class="mobile-nav-link"
+       href="#/analysis"
+       data-route="analysis">
+      <span aria-hidden="true">⌁</span>
+      <small>Analyse</small>
+    </a>
+
+    <a class="mobile-nav-link"
+       href="#/coach"
+       data-route="coach">
+      <span aria-hidden="true">✳</span>
+      <small>Coach-KI</small>
+    </a>
+
+    <a class="mobile-nav-link"
+       href="#/development"
+       data-route="development">
+      <span aria-hidden="true">↗</span>
+      <small>Fortschritt</small>
+    </a>
+
+  </nav>
+
+  <!-- Benachrichtigungen -->
+  <div class="toast-region"
+       id="toast-region"
+       role="status"
+       aria-live="polite"
+       aria-atomic="true">
+  </div>
+
+  <!-- Startet die Anwendung -->
+  <script type="module" src="./js/app.js"></script>
+
+</body>
+</html>
