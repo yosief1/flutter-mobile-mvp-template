@@ -1,162 +1,39 @@
 
-/* =====================================================
-   ALLCOACH — APP CORE
-   Version: 0.1.0
-   Startpunkt, Navigation, Seiten und lokale Daten
-   ===================================================== */
+/* ==========================================
+   ALLCOACH — APPLICATION CORE
+   Version: 0.2.0
+   ========================================== */
 
-"use strict";
+import {
+  APP_CONFIG,
+  ROUTES,
+  createDefaultState,
+  isValidRoute,
+  LIMITS
+} from "./config.js";
 
-/* ---------- 1. KONFIGURATION ---------- */
+import {
+  loadState,
+  saveState,
+  clearState
+} from "./storage.js";
 
-const APP_CONFIG = Object.freeze({
-  name: "AllCoach",
-  version: "0.1.0",
-  storageKey: "allcoach-app-v1",
-  defaultRoute: "today"
-});
-
-const ROUTES = {
-  today: {
-    title: "Heute",
-    eyebrow: "DEIN LEISTUNGSZENTRUM"
-  },
-  training: {
-    title: "Training",
-    eyebrow: "BESSER WERDEN. JEDEN TAG."
-  },
-  analysis: {
-    title: "Analyse",
-    eyebrow: "VERSTEHE DEIN SPIEL"
-  },
-  coach: {
-    title: "Coach-KI",
-    eyebrow: "DEIN DIGITALER COACH"
-  },
-  development: {
-    title: "Entwicklung",
-    eyebrow: "DEIN FORTSCHRITT"
-  },
-  profile: {
-    title: "Spielerprofil",
-    eyebrow: "DEIN SPIELERPROFIL"
-  }
-};
-
-/* ---------- 2. STANDARD-DATEN ---------- */
-
-const DEFAULT_STATE = {
-  profile: {
-    name: "Yosief",
-    position: "Außenverteidiger",
-    club: "SG Bad Soden",
-    season: "2026/27",
-    mainGoal: "Mein Spiel verbessern",
-    preferredFoot: "Rechts",
-    trainingDays: 3
-  },
-
-  goals: [
-    {
-      id: "crossing",
-      title: "Flanken verbessern",
-      category: "Technik",
-      progress: 20
-    },
-    {
-      id: "duels",
-      title: "Zweikämpfe gewinnen",
-      category: "Defensive",
-      progress: 25
-    },
-    {
-      id: "decisions",
-      title: "Schneller entscheiden",
-      category: "Spielverständnis",
-      progress: 15
-    }
-  ],
-
-  completedSessions: 0,
-
-  lastReflection: "",
-
-  ratings: {
-    technique: 5,
-    tactics: 5,
-    fitness: 5,
-    decisions: 5
-  },
-
-  chatHistory: [
-    {
-      role: "coach",
-      text: "Hey Yosief! Ich bin dein AllCoach. Was möchtest du heute verbessern?"
-    }
-  ]
-};
-
-/* ---------- 3. SPEICHER ---------- */
-
-function cloneDefaults() {
-  return JSON.parse(JSON.stringify(DEFAULT_STATE));
-}
-
-function loadState() {
-  try {
-    const saved = localStorage.getItem(APP_CONFIG.storageKey);
-
-    if (!saved) {
-      return cloneDefaults();
-    }
-
-    const parsed = JSON.parse(saved);
-    const defaults = cloneDefaults();
-
-    return {
-      ...defaults,
-      ...parsed,
-      profile: {
-        ...defaults.profile,
-        ...(parsed.profile || {})
-      },
-      ratings: {
-        ...defaults.ratings,
-        ...(parsed.ratings || {})
-      },
-      goals: Array.isArray(parsed.goals)
-        ? parsed.goals
-        : defaults.goals,
-      chatHistory: Array.isArray(parsed.chatHistory)
-        ? parsed.chatHistory
-        : defaults.chatHistory
-    };
-  } catch (error) {
-    console.warn("AllCoach: Daten konnten nicht geladen werden.", error);
-    return cloneDefaults();
-  }
-}
+/* ---------- 1. APP-ZUSTAND ---------- */
 
 let state = loadState();
 
-function saveState() {
-  try {
-    localStorage.setItem(
-      APP_CONFIG.storageKey,
-      JSON.stringify(state)
-    );
-    return true;
-  } catch (error) {
-    console.warn("AllCoach: Speichern fehlgeschlagen.", error);
-    showToast("Speichern nicht möglich. Prüfe deinen Browser.");
-    return false;
-  }
+const root = document.getElementById("page-content");
+
+if (!root) {
+  throw new Error(
+    "AllCoach: Das Element #page-content fehlt in index.html."
+  );
 }
 
-/* ---------- 4. HILFSFUNKTIONEN ---------- */
+/* ---------- 2. HILFSFUNKTIONEN ---------- */
 
 function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, character => {
+  return String(value ?? "").replace(/[&<>"']/g, char => {
     const entities = {
       "&": "&amp;",
       "<": "&lt;",
@@ -165,27 +42,29 @@ function escapeHTML(value) {
       "'": "&#39;"
     };
 
-    return entities[character];
+    return entities[char];
   });
 }
 
 function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, Number(value) || 0));
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return min;
+
+  return Math.min(max, Math.max(min, number));
 }
 
 function getInitials(name) {
-  const parts = String(name || "Y")
+  return String(name || "A")
     .trim()
     .split(/\s+/)
-    .filter(Boolean);
-
-  return parts
+    .filter(Boolean)
     .slice(0, 2)
     .map(part => part[0].toUpperCase())
-    .join("") || "Y";
+    .join("");
 }
 
-function getTodayLabel() {
+function getDateLabel() {
   return new Intl.DateTimeFormat("de-DE", {
     weekday: "long",
     day: "numeric",
@@ -198,14 +77,28 @@ function getGreeting() {
 
   if (hour < 11) return "Guten Morgen";
   if (hour < 18) return "Guten Tag";
+
   return "Guten Abend";
 }
 
 function getRoute() {
   const route = window.location.hash.replace(/^#\/?/, "");
-  return Object.hasOwn(ROUTES, route)
+
+  return isValidRoute(route)
     ? route
     : APP_CONFIG.defaultRoute;
+}
+
+function persist() {
+  const success = saveState(state);
+
+  if (!success) {
+    showToast(
+      "Speichern nicht möglich. Prüfe deine Browsereinstellungen."
+    );
+  }
+
+  return success;
 }
 
 function showToast(message) {
@@ -219,12 +112,10 @@ function showToast(message) {
 
   region.appendChild(toast);
 
-  window.setTimeout(() => {
-    toast.remove();
-  }, 3000);
+  window.setTimeout(() => toast.remove(), 3000);
 }
 
-function button(label, action, variant = "primary") {
+function makeButton(label, action, variant = "primary") {
   return `
     <button class="btn btn-${variant}"
             type="button"
@@ -234,23 +125,7 @@ function button(label, action, variant = "primary") {
   `;
 }
 
-function card(title, content, subtitle = "") {
-  return `
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <h3 class="card-title">${title}</h3>
-          ${subtitle
-            ? `<p class="card-subtitle">${subtitle}</p>`
-            : ""}
-        </div>
-      </div>
-      ${content}
-    </section>
-  `;
-}
-
-function progressBar(label, value, max = 10) {
+function progressBar(label, value, max = 100) {
   const safeValue = clamp(value, 0, max);
   const percentage = Math.round((safeValue / max) * 100);
 
@@ -258,8 +133,9 @@ function progressBar(label, value, max = 10) {
     <div class="progress-item">
       <div class="progress-meta">
         <span>${escapeHTML(label)}</span>
-        <strong>${safeValue}/${max}</strong>
+        <strong>${safeValue}${max === 100 ? "%" : `/${max}`}</strong>
       </div>
+
       <div class="progress-track"
            role="progressbar"
            aria-label="${escapeHTML(label)}"
@@ -273,43 +149,37 @@ function progressBar(label, value, max = 10) {
   `;
 }
 
-/* ---------- 5. SEITE: HEUTE ---------- */
+/* ---------- 3. SEITE: HEUTE ---------- */
 
 function renderToday() {
-  const name = escapeHTML(state.profile.name);
-  const sessions = Math.max(0, Number(state.completedSessions) || 0);
-  const avgRating = Object.values(state.ratings)
+  const average = Object.values(state.ratings)
     .reduce((sum, value) => sum + Number(value), 0) /
     Object.keys(state.ratings).length;
-
-  const workoutDone = Boolean(
-    state.lastCompletedDate === new Date().toDateString()
-  );
 
   return `
     <div class="page">
 
       <section class="hero">
         <div class="hero-content">
-          <span class="hero-label">
-            <span aria-hidden="true">●</span>
-            DEIN ENTWICKLUNGSPLAN
-          </span>
+          <span class="hero-label">DEIN ENTWICKLUNGSPLAN</span>
 
-          <h2>${getGreeting()}, ${name}.</h2>
+          <h2>
+            ${getGreeting()},
+            ${escapeHTML(state.profile.name)}.
+          </h2>
 
           <p>
-            Kleine Fortschritte, konsequent umgesetzt.
-            Konzentriere dich heute auf eine Sache und
-            arbeite gezielt an deinem Spiel.
+            Arbeite gezielt an deinem Spiel.
+            Wähle einen Schwerpunkt und mache
+            aus jeder Trainingseinheit einen Lernschritt.
           </p>
 
           <div class="hero-actions">
-            <a href="#/training" class="btn btn-primary">
+            <a class="btn btn-primary" href="#/training">
               Training ansehen →
             </a>
 
-            <a href="#/coach" class="btn btn-secondary">
+            <a class="btn btn-secondary" href="#/coach">
               Coach fragen
             </a>
           </div>
@@ -319,92 +189,78 @@ function renderToday() {
       <section class="section">
         <div class="section-heading">
           <h2>Deine Übersicht</h2>
-          <span class="badge badge-lime">SAISON ${escapeHTML(
-            state.profile.season
-          )}</span>
+          <span class="badge badge-lime">
+            SAISON ${escapeHTML(state.profile.season)}
+          </span>
         </div>
 
         <div class="grid grid-3">
           <article class="card stat-card">
             <span class="stat-icon" aria-hidden="true">⚽</span>
-            <p class="card-subtitle">Absolvierte Einheiten</p>
-            <p class="card-value">${sessions}</p>
-            <p class="card-description">Seit App-Start erfasst</p>
+            <p class="card-subtitle">Abgeschlossene Einheiten</p>
+            <p class="card-value">
+              ${state.completedSessions}
+            </p>
           </article>
 
           <article class="card stat-card">
             <span class="stat-icon" aria-hidden="true">↗</span>
-            <p class="card-subtitle">Deine Selbsteinschätzung</p>
-            <p class="card-value">${avgRating.toFixed(1)}<span
-              style="font-size:15px;color:var(--text-muted)">/10</span></p>
-            <p class="card-description">Dein persönlicher Richtwert</p>
+            <p class="card-subtitle">Deine Einschätzung</p>
+            <p class="card-value">
+              ${average.toFixed(1)}
+              <span style="font-size:14px;color:var(--text-muted)">/10</span>
+            </p>
           </article>
 
           <article class="card stat-card">
             <span class="stat-icon" aria-hidden="true">◎</span>
-            <p class="card-subtitle">Aktive Entwicklungsziele</p>
+            <p class="card-subtitle">Aktive Ziele</p>
             <p class="card-value">${state.goals.length}</p>
-            <p class="card-description">Deine aktuellen Schwerpunkte</p>
           </article>
         </div>
       </section>
 
       <section class="section">
         <div class="section-heading">
-          <h2>Dein Fokus heute</h2>
-          <a href="#/training">Zum Training →</a>
+          <h2>Dein Fokus</h2>
+          <a href="#/training">Trainingsplan →</a>
         </div>
 
         <div class="grid grid-2">
           <article class="card">
-            <div class="card-header">
-              <div>
-                <span class="badge badge-lime">TECHNIK</span>
-                <h3 class="card-title" style="margin-top:12px">
-                  Flanken nach Bewegung
-                </h3>
-                <p class="card-subtitle">
-                  Kontrollieren, vorbereiten, präzise spielen.
-                </p>
-              </div>
-              <span class="stat-icon" aria-hidden="true">↗</span>
-            </div>
-
+            <span class="badge badge-lime">TECHNIK</span>
+            <h3 class="card-title" style="margin-top:12px">
+              Flanken nach Bewegung
+            </h3>
             <p class="card-description">
-              Arbeite zunächst an einer sauberen Technik.
-              Qualität ist wichtiger als eine hohe Anzahl.
+              Kontrolliere den Ball, schau vor dem Schlag
+              auf und spiele zunächst auf ein klares Ziel.
             </p>
-
-            <div style="margin-top:20px">
-              ${button("Einheit ansehen →", "go-training")}
+            <div style="margin-top:18px">
+              ${makeButton("Training öffnen →", "go-training")}
             </div>
           </article>
 
           <article class="card">
-            <div class="card-header">
-              <div>
-                <span class="badge">KURZE REFLEXION</span>
-                <h3 class="card-title" style="margin-top:12px">
-                  Wie fühlst du dich?
-                </h3>
-                <p class="card-subtitle">
-                  Passe dein Training an deinen Tag an.
-                </p>
-              </div>
-            </div>
+            <span class="badge">REFLEXION</span>
+            <h3 class="card-title" style="margin-top:12px">
+              Wie fühlst du dich heute?
+            </h3>
+            <p class="card-subtitle">
+              Deine Tagesform hilft dabei, die Belastung anzupassen.
+            </p>
 
             <label class="form-label" for="daily-reflection">
-              Dein aktueller Eindruck
+              Notiz
             </label>
 
-            <textarea
-              id="daily-reflection"
-              class="textarea"
-              placeholder="Zum Beispiel: Beine müde, aber motiviert …"
-            >${escapeHTML(state.lastReflection)}</textarea>
+            <textarea class="textarea"
+                      id="daily-reflection"
+                      maxlength="2000"
+                      placeholder="Zum Beispiel: motiviert, aber etwas müde …">${escapeHTML(state.lastReflection)}</textarea>
 
             <div style="margin-top:12px">
-              ${button("Reflexion speichern", "save-reflection", "secondary")}
+              ${makeButton("Notiz speichern", "save-reflection", "secondary")}
             </div>
           </article>
         </div>
@@ -413,65 +269,57 @@ function renderToday() {
       <section class="section">
         <div class="section-heading">
           <h2>Deine Entwicklungsziele</h2>
-          <a href="#/development">Alle Ziele →</a>
+          <a href="#/development">Fortschritt →</a>
         </div>
 
         <div class="card">
           ${state.goals.map(goal => `
-            <div style="margin-bottom:20px">
-              ${progressBar(goal.title, goal.progress, 100)}
-              <p class="card-subtitle">${escapeHTML(goal.category)}</p>
+            <div style="margin-bottom:22px">
+              ${progressBar(goal.title, goal.progress)}
+              <p class="card-subtitle">
+                ${escapeHTML(goal.category)}
+              </p>
             </div>
           `).join("")}
         </div>
       </section>
 
-      ${workoutDone ? `
-        <div class="badge badge-green">
-          ✓ Heutige Trainingseinheit als erledigt markiert
-        </div>
-      ` : ""}
     </div>
   `;
 }
 
-/* ---------- 6. SEITE: TRAINING ---------- */
+/* ---------- 4. SEITE: TRAINING ---------- */
 
 function renderTraining() {
-  const workoutDone = Boolean(
-    state.lastCompletedDate === new Date().toDateString()
-  );
-
   const exercises = [
     {
       time: "8 Min.",
-      title: "Ballkontrolle und erster Kontakt",
-      description: "Beide Füße nutzen, den Ball kontrolliert mitnehmen."
+      title: "Ballkontrolle",
+      description: "Den Ball mit beiden Füßen kontrolliert mitnehmen."
     },
     {
       time: "10 Min.",
       title: "Passen und Freilaufen",
-      description: "Nach dem Pass den Kopf heben und eine neue Position suchen."
+      description: "Nach dem Pass den Kopf heben und einen neuen Raum suchen."
     },
     {
       time: "10 Min.",
       title: "Flanken in Bewegung",
-      description: "Anlaufen, Ball kontrollieren und gezielt in einen freien Raum spielen."
+      description: "Kontrolliert anlaufen und auf einen markierten Zielbereich spielen."
     },
     {
       time: "5 Min.",
-      title: "Reflexion und lockeres Auslaufen",
-      description: "Belastung ruhig beenden und die Einheit kurz bewerten."
+      title: "Abschluss und Reflexion",
+      description: "Ruhig auslaufen und die Einheit kurz bewerten."
     }
   ];
 
   return `
     <div class="page">
-
       <div class="page-heading">
         <div>
           <h2>Dein Trainingsplan</h2>
-          <p>Eine flexible Beispiel-Einheit für deinen Außenverteidiger-Alltag.</p>
+          <p>Eine Beispiel-Einheit für deinen Alltag als Außenverteidiger.</p>
         </div>
         <span class="badge badge-lime">33 MINUTEN</span>
       </div>
@@ -479,19 +327,15 @@ function renderTraining() {
       <section class="hero">
         <div class="hero-content">
           <span class="hero-label">HEUTIGER SCHWERPUNKT</span>
-          <h2>Kontrolle. Blick hoch. Gute Entscheidung.</h2>
+          <h2>Kontrolle. Blick hoch. Entscheidung.</h2>
           <p>
-            Passe Umfang und Intensität an deine Tagesform an.
-            Vor dem Training aufwärmen und ausreichend trinken.
-            Bei Schmerzen die Übung abbrechen.
+            Wärme dich zuerst auf und passe den Umfang
+            an deine Tagesform an. Qualität geht vor Menge.
+            Trainiere nicht durch Schmerzen hindurch.
           </p>
 
           <div class="hero-actions">
-            ${button(
-              workoutDone ? "Einheit erledigt ✓" : "Training abschließen",
-              "complete-workout",
-              workoutDone ? "secondary" : "primary"
-            )}
+            ${makeButton("Einheit abschließen ✓", "complete-workout")}
           </div>
         </div>
       </section>
@@ -499,7 +343,6 @@ function renderTraining() {
       <section class="section">
         <div class="section-heading">
           <h2>Ablauf der Einheit</h2>
-          <span class="badge">4 ABSCHNITTE</span>
         </div>
 
         <div class="card">
@@ -510,52 +353,44 @@ function renderTraining() {
                 <h3>${index + 1}. ${exercise.title}</h3>
                 <p>${exercise.description}</p>
               </div>
-              <span class="badge">${index + 1}/4</span>
             </div>
           `).join("")}
         </div>
       </section>
 
-      <section class="section">
-        <div class="section-heading">
-          <h2>Anpassung an deine Tagesform</h2>
-        </div>
+      <section class="grid grid-3">
+        <article class="card">
+          <span class="badge badge-green">FIT</span>
+          <h3 class="card-title" style="margin-top:12px">Normale Tagesform</h3>
+          <p class="card-description">
+            Arbeite konzentriert an der Technik.
+          </p>
+        </article>
 
-        <div class="grid grid-3">
-          <article class="card">
-            <span class="badge badge-green">FIT</span>
-            <h3 class="card-title" style="margin-top:14px">Normaler Tag</h3>
-            <p class="card-description">
-              Führe die geplanten Übungen technisch sauber durch.
-            </p>
-          </article>
+        <article class="card">
+          <span class="badge badge-orange">MÜDE</span>
+          <h3 class="card-title" style="margin-top:12px">Weniger Energie</h3>
+          <p class="card-description">
+            Reduziere Wiederholungen und Pausen nicht unnötig.
+          </p>
+        </article>
 
-          <article class="card">
-            <span class="badge badge-orange">MÜDE</span>
-            <h3 class="card-title" style="margin-top:14px">Weniger Energie</h3>
-            <p class="card-description">
-              Reduziere Wiederholungen und konzentriere dich auf Kontrolle.
-            </p>
-          </article>
-
-          <article class="card">
-            <span class="badge badge-red">SCHMERZEN</span>
-            <h3 class="card-title" style="margin-top:14px">Training stoppen</h3>
-            <p class="card-description">
-              Trainiere nicht durch Schmerzen hindurch. Sprich mit einem
-              Trainer oder einer erwachsenen Vertrauensperson.
-            </p>
-          </article>
-        </div>
+        <article class="card">
+          <span class="badge badge-red">SCHMERZEN</span>
+          <h3 class="card-title" style="margin-top:12px">Unterbrechen</h3>
+          <p class="card-description">
+            Beende die Belastung und hole dir Unterstützung.
+          </p>
+        </article>
       </section>
     </div>
   `;
 }
 
-/* ---------- 7. SEITE: ANALYSE ---------- */
+/* ---------- 5. SEITE: ANALYSE ---------- */
 
 function renderAnalysis() {
-  const ratings = [
+  const categories = [
     ["technique", "Technik"],
     ["tactics", "Taktik und Positionierung"],
     ["fitness", "Athletik"],
@@ -564,28 +399,23 @@ function renderAnalysis() {
 
   return `
     <div class="page">
-
       <div class="page-heading">
         <div>
-          <h2>Dein Spiel verstehen</h2>
-          <p>Erfasse deinen Eindruck und vergleiche ihn mit späteren Einschätzungen.</p>
+          <h2>Spielanalyse</h2>
+          <p>Halte fest, wie du deine aktuellen Fähigkeiten einschätzt.</p>
         </div>
         <span class="badge">SELBSTEINSCHÄTZUNG</span>
       </div>
 
       <section class="card">
-        <div class="card-header">
-          <div>
-            <h3 class="card-title">Wie schätzt du dich aktuell ein?</h3>
-            <p class="card-subtitle">
-              1 = noch unsicher, 10 = sehr sicher.
-              Das sind keine objektiven Messwerte.
-            </p>
-          </div>
-        </div>
+        <h3 class="card-title">Wie schätzt du dich ein?</h3>
+        <p class="card-subtitle">
+          1 = unsicher, 10 = sehr sicher.
+          Dies sind persönliche Einschätzungen, keine objektiven Messwerte.
+        </p>
 
-        <form class="form" id="ratings-form">
-          ${ratings.map(([key, label]) => `
+        <form id="ratings-form" class="form" style="margin-top:22px">
+          ${categories.map(([key, label]) => `
             <div class="form-group">
               <label class="form-label" for="rating-${key}">
                 ${label}
@@ -593,112 +423,101 @@ function renderAnalysis() {
               </label>
 
               <input class="input rating-input"
-                     id="rating-${key}"
-                     name="${key}"
                      type="range"
                      min="1"
                      max="10"
                      step="1"
+                     id="rating-${key}"
+                     name="${key}"
                      value="${state.ratings[key]}">
-
-              ${progressBar(label, state.ratings[key])}
             </div>
           `).join("")}
 
           <button class="btn btn-primary" type="submit">
-            Einschätzung speichern
+            Einschätzungen speichern
           </button>
         </form>
       </section>
 
-      <section class="section">
-        <div class="section-heading">
-          <h2>So liest du deine Analyse</h2>
-        </div>
+      <section class="grid grid-2">
+        <article class="card">
+          <h3 class="card-title">Stärken finden</h3>
+          <p class="card-description">
+            Notiere gelungene Spielsituationen, gute Pässe und
+            erfolgreiche defensive Entscheidungen.
+          </p>
+        </article>
 
-        <div class="grid grid-2">
-          <article class="card">
-            <span class="stat-icon" aria-hidden="true">◉</span>
-            <h3 class="card-title" style="margin-top:14px">
-              Stärken erkennen
-            </h3>
-            <p class="card-description">
-              Notiere konkrete Spielsituationen, in denen du gut
-              verteidigt, Räume erkannt oder sauber gepasst hast.
-            </p>
-          </article>
-
-          <article class="card">
-            <span class="stat-icon" aria-hidden="true">↗</span>
-            <h3 class="card-title" style="margin-top:14px">
-              Nächsten Schritt wählen
-            </h3>
-            <p class="card-description">
-              Wähle einen Schwerpunkt, den du im Training gezielt
-              wiederholen und später erneut einschätzen kannst.
-            </p>
-          </article>
-        </div>
+        <article class="card">
+          <h3 class="card-title">Nächsten Schritt planen</h3>
+          <p class="card-description">
+            Wähle eine konkrete Situation, die du im Training
+            verbessern möchtest.
+          </p>
+        </article>
       </section>
-
     </div>
   `;
 }
 
-/* ---------- 8. SEITE: COACH-DEMO ---------- */
+/* ---------- 6. SEITE: COACH ---------- */
 
 /*
-  Hinweis:
-  Dieser Coach verwendet lokale Regeln und Vorlagen.
-  Er ruft noch kein echtes KI-Modell und keine externe API auf.
-*/
+ * Regelbasierte Demo.
+ * Eine echte KI benötigt später einen sicheren Backend-Endpunkt.
+ * Ein privater API-Schlüssel darf nicht hier im Browser stehen.
+ */
 
 function getCoachReply(message) {
   const text = message.toLowerCase();
 
   if (/schmerz|weh|verletz|schwindel|krank/.test(text)) {
-    return "Bei Schmerzen, Schwindel oder wenn du dich krank fühlst, solltest du das Training nicht einfach durchziehen. Unterbrich die Belastung und sprich mit einem Trainer oder einer erwachsenen Vertrauensperson. Ich kann keine medizinische Beurteilung stellen.";
+    return "Bei Schmerzen, Schwindel oder wenn du dich krank fühlst, unterbrich das Training und sprich mit einem Trainer oder einer erwachsenen Vertrauensperson. Ich kann keine medizinische Beurteilung stellen.";
   }
 
   if (/flank/.test(text)) {
-    return "Für bessere Flanken: 1. Laufe kontrolliert an. 2. Schau vor dem Schlag kurz in den Strafraum. 3. Achte auf einen stabilen Standfuß. 4. Spiele zunächst auf ein klares Ziel, bevor du die Schwierigkeit steigerst. Bewerte die Genauigkeit statt nur die Anzahl.";
+    return "Für bessere Flanken: Laufe kontrolliert an, schaue vor dem Schlag kurz auf und spiele zunächst auf einen klaren Zielbereich. Achte auf einen stabilen Standfuß. Erhöhe die Schwierigkeit erst, wenn du die Bewegung kontrollierst.";
   }
 
-  if (/zweikampf|verteidig|defensiv|1 gegen 1|1v1/.test(text)) {
-    return "Im defensiven 1-gegen-1: 1. Laufe kontrolliert an. 2. Halte einen passenden Abstand. 3. Stelle deinen Körper so, dass du den Gegner vom gefährlichen Raum weglenkst. 4. Warte auf einen guten Moment für den Ballgewinn. Übe das zunächst mit einem Mitspieler.";
+  if (/zweikampf|verteidig|defensiv|1v1|1 gegen 1/.test(text)) {
+    return "Im defensiven 1-gegen-1: Nähere dich kontrolliert, halte einen passenden Abstand und lenke den Gegner möglichst vom gefährlichen Raum weg. Warte auf einen guten Moment für den Ballgewinn und übe zunächst mit einem Mitspieler.";
   }
 
   if (/ausdauer|kondition|schnell|sprint/.test(text)) {
-    return "Baue deine Belastung schrittweise auf. Ein gutes Aufwärmen und lockere Belastung mit ausreichenden Erholungsphasen sind sinnvoll. Du solltest noch kontrolliert trainieren können. Steigere nicht gleichzeitig Dauer und Intensität stark.";
+    return "Steigere deine Laufbelastung schrittweise und plane Erholungsphasen ein. Du solltest die Intensität an deine Tagesform anpassen. Wenn du ungewöhnliche Beschwerden hast, hör auf und sprich mit einem Erwachsenen.";
   }
 
   if (/linksfuß|linker fuß|schwacher fuß|beidfüß/.test(text)) {
-    return "Übe deinen linken Fuß mit kurzen, kontrollierten Pässen gegen eine Wand oder mit einem Partner. Beginne mit einer angenehmen Distanz und steigere erst dann. Achte auf einen ruhigen ersten Kontakt und eine saubere Passbewegung.";
+    return "Beginne mit kurzen, kontrollierten Pässen mit dem linken Fuß. Achte auf den ersten Kontakt und die Genauigkeit. Steigere Distanz und Schwierigkeit langsam, sobald die Bewegung sicher klappt.";
   }
 
   if (/nlz|profifußball|scout|wechsel/.test(text)) {
-    return "Konzentriere dich zunächst auf Dinge, die du beeinflussen kannst: regelmäßig gut trainieren, im Spiel mutige und passende Entscheidungen treffen, zuverlässig verteidigen und aus Feedback lernen. Sprich mit deinem Trainer über konkrete nächste Entwicklungsschritte. Ein späterer Weg in ein NLZ ist nicht garantiert.";
+    return "Arbeite an deinen beeinflussbaren Faktoren: Trainingsqualität, Spielverständnis, Zuverlässigkeit und der Umsetzung von Trainerfeedback. Besprich mit deinem Trainer konkrete nächste Schritte. Ein Weg ins NLZ oder in den Profifußball ist nicht garantiert.";
   }
 
-  if (/training|übung|trainieren|heute/.test(text)) {
-    return "Wähle für heute einen Schwerpunkt: Ballkontrolle, Passen, Flanken oder defensive Positionierung. Mach dich zuerst warm und arbeite in kurzen, konzentrierten Abschnitten. Wenn du müde bist, reduziere die Belastung. Schau in den Bereich „Training“ für die Beispiel-Einheit.";
+  if (/motivation|fehler|schlecht gespielt/.test(text)) {
+    return "Wähle eine konkrete Spielsituation aus. Was ist passiert, welche Möglichkeiten hattest du und was willst du beim nächsten Mal ausprobieren? Ein kleiner umsetzbarer Schritt ist hilfreicher als zu viele gleichzeitige Ziele.";
   }
 
-  if (/motivation|keine lust|schlecht gespielt|fehler/.test(text)) {
-    return "Ein Fehler ist eine Information, kein Urteil über dich. Suche dir eine konkrete Szene heraus: Was ist passiert, welche Optionen hattest du und was probierst du nächstes Mal? Ein kleiner, umsetzbarer Schritt hilft mehr als zehn vage Ziele.";
-  }
-
-  return "Lass uns konkret werden: An welchem Punkt möchtest du arbeiten – Technik, Flanken, Zweikämpfe, Taktik, Ausdauer oder Entscheidungen im Spiel? Beschreibe kurz eine Situation aus dem Training oder Spiel. Dann kann ich dir einen passenden allgemeinen Vorschlag machen.";
+  return "Woran möchtest du arbeiten: Flanken, Technik, Zweikämpfe, Taktik, Ausdauer oder Entscheidungen? Beschreibe eine konkrete Situation aus Training oder Spiel. Ich gebe dir dazu einen allgemeinen Trainingsvorschlag.";
 }
 
 function renderCoach() {
+  const messages = state.chatHistory
+    .slice(-LIMITS.maxChatMessages)
+    .map(message => `
+      <div class="chat-message ${message.role === "user" ? "user" : "coach"}">
+        <p>${escapeHTML(message.text).replace(/\n/g, "<br>")}</p>
+      </div>
+    `)
+    .join("");
+
   return `
     <div class="page">
-
       <div class="page-heading">
         <div>
-          <h2>Dein persönlicher Fußball-Coach</h2>
-          <p>Stelle Fragen zu Training, Technik und Spielverständnis.</p>
+          <h2>Dein Fußball-Coach</h2>
+          <p>Stelle Fragen zu Technik, Taktik und Trainingsplanung.</p>
         </div>
         <span class="badge badge-orange">DEMO</span>
       </div>
@@ -708,18 +527,15 @@ function renderCoach() {
           <div>
             <h3 class="card-title">AllCoach Assistant</h3>
             <p class="card-subtitle">
-              Lokale Coach-Demo · Noch keine echte KI-Verbindung
+              Regelbasierter Prototyp – noch keine echte KI-Anbindung.
             </p>
           </div>
-          <span class="status-dot" aria-label="Lokal verfügbar"></span>
         </div>
 
-        <div class="chat-messages" id="chat-messages">
-          ${state.chatHistory.map(message => `
-            <div class="chat-message ${message.role === "user" ? "user" : "coach"}">
-              <p>${escapeHTML(message.text).replace(/\n/g, "<br>")}</p>
-            </div>
-          `).join("")}
+        <div class="chat-messages"
+             id="chat-messages"
+             aria-live="polite">
+          ${messages}
         </div>
 
         <form class="chat-form" id="coach-form">
@@ -727,20 +543,14 @@ function renderCoach() {
                     id="coach-input"
                     name="message"
                     rows="2"
-                    maxlength="1000"
+                    maxlength="${LIMITS.maxChatCharacters}"
                     required
-                    placeholder="Zum Beispiel: Wie verbessere ich meine Flanken?"></textarea>
+                    placeholder="Wie verbessere ich meine Flanken?"></textarea>
 
-          <button class="btn btn-primary"
-                  type="submit"
-                  aria-label="Nachricht senden">
+          <button class="btn btn-primary" type="submit">
             Senden →
           </button>
         </form>
-
-        <p class="form-hint">
-          Bitte keine privaten Zugangsdaten oder sensiblen Informationen eingeben.
-        </p>
       </section>
 
       <section class="section">
@@ -749,41 +559,32 @@ function renderCoach() {
         </div>
 
         <div class="grid grid-2">
-          <button class="card quick-prompt"
-                  type="button"
-                  data-prompt="Wie verbessere ich meine Flanken?">
+          <button class="card quick-prompt" data-prompt="Wie verbessere ich meine Flanken?" type="button">
             <h3 class="card-title">Flanken verbessern ↗</h3>
             <p class="card-description">Technik und Genauigkeit</p>
           </button>
 
-          <button class="card quick-prompt"
-                  type="button"
-                  data-prompt="Wie verteidige ich besser im 1 gegen 1?">
+          <button class="card quick-prompt" data-prompt="Wie verteidige ich besser im 1 gegen 1?" type="button">
             <h3 class="card-title">Besser verteidigen ↗</h3>
             <p class="card-description">Abstand, Stellung und Timing</p>
           </button>
 
-          <button class="card quick-prompt"
-                  type="button"
-                  data-prompt="Wie trainiere ich meinen linken Fuß?">
-            <h3 class="card-title">Schwachen Fuß trainieren ↗</h3>
+          <button class="card quick-prompt" data-prompt="Wie trainiere ich meinen linken Fuß?" type="button">
+            <h3 class="card-title">Linken Fuß trainieren ↗</h3>
             <p class="card-description">Kontrolle und saubere Pässe</p>
           </button>
 
-          <button class="card quick-prompt"
-                  type="button"
-                  data-prompt="Wie kann ich mich als Außenverteidiger entwickeln?">
+          <button class="card quick-prompt" data-prompt="Wie entwickle ich mich als Außenverteidiger?" type="button">
             <h3 class="card-title">Als Außenverteidiger wachsen ↗</h3>
             <p class="card-description">Deine nächsten Entwicklungsschritte</p>
           </button>
         </div>
       </section>
-
     </div>
   `;
 }
 
-/* ---------- 9. SEITE: ENTWICKLUNG ---------- */
+/* ---------- 7. SEITE: ENTWICKLUNG ---------- */
 
 function renderDevelopment() {
   const average = Object.values(state.ratings)
@@ -792,66 +593,57 @@ function renderDevelopment() {
 
   return `
     <div class="page">
-
       <div class="page-heading">
         <div>
-          <h2>Dein Fortschritt</h2>
-          <p>Halte Ziele und Selbsteinschätzungen an einem Ort fest.</p>
+          <h2>Deine Entwicklung</h2>
+          <p>Verfolge deine Ziele und Selbsteinschätzungen.</p>
         </div>
-        <span class="badge badge-lime">DEIN WEG</span>
       </div>
 
-      <section class="grid grid-2">
+      <div class="grid grid-2">
         <article class="card">
-          <p class="card-subtitle">Durchschnittliche Selbsteinschätzung</p>
-          <p class="card-value">${average.toFixed(1)}<span
-            style="font-size:15px;color:var(--text-muted)">/10</span></p>
+          <p class="card-subtitle">Selbsteinschätzung im Durchschnitt</p>
+          <p class="card-value">
+            ${average.toFixed(1)}
+            <span style="font-size:14px;color:var(--text-muted)">/10</span>
+          </p>
           <p class="card-description">
-            Nutze den Wert zur persönlichen Orientierung, nicht als offizielles Leistungsurteil.
+            Dein persönlicher Richtwert, kein offizielles Leistungsurteil.
           </p>
         </article>
 
         <article class="card">
           <p class="card-subtitle">Abgeschlossene Einheiten</p>
-          <p class="card-value">${Math.max(0, Number(state.completedSessions) || 0)}</p>
+          <p class="card-value">${state.completedSessions}</p>
           <p class="card-description">
-            Gezählt werden nur Einheiten, die du in der App als abgeschlossen markiert hast.
+            Gezählt werden die in AllCoach erfassten Einheiten.
           </p>
         </article>
-      </section>
+      </div>
 
       <section class="section">
         <div class="section-heading">
-          <h2>Deine Entwicklungsziele</h2>
+          <h2>Entwicklungsziele</h2>
         </div>
 
         <div class="card">
           ${state.goals.map(goal => `
-            <div class="goal-item" style="margin-bottom:24px">
-              <div class="progress-meta">
-                <span>
-                  <strong>${escapeHTML(goal.title)}</strong>
-                  <br>
-                  <small>${escapeHTML(goal.category)}</small>
-                </span>
-                <strong>${clamp(goal.progress, 0, 100)}%</strong>
-              </div>
+            <div style="margin-bottom:25px">
+              ${progressBar(goal.title, goal.progress)}
 
-              <div class="progress-track">
-                <div class="progress-fill"
-                     style="width:${clamp(goal.progress, 0, 100)}%"></div>
-              </div>
+              <p class="card-subtitle">${escapeHTML(goal.category)}</p>
 
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
                 <button class="btn btn-secondary"
                         type="button"
-                        data-action="increase-goal"
+                        data-action="goal-up"
                         data-goal-id="${escapeHTML(goal.id)}">
                   Fortschritt +5%
                 </button>
+
                 <button class="btn btn-secondary"
                         type="button"
-                        data-action="decrease-goal"
+                        data-action="goal-down"
                         data-goal-id="${escapeHTML(goal.id)}">
                   −5%
                 </button>
@@ -860,56 +652,32 @@ function renderDevelopment() {
           `).join("")}
         </div>
       </section>
-
-      <section class="section">
-        <div class="section-heading">
-          <h2>Deine nächste Reflexion</h2>
-        </div>
-
-        <div class="card">
-          <h3 class="card-title">Drei Fragen nach dem Training</h3>
-          <div class="training-item">
-            <div class="training-time">01</div>
-            <div class="training-details">
-              <h3>Was lief gut?</h3>
-              <p>Notiere eine konkrete gelungene Aktion.</p>
-            </div>
-          </div>
-
-          <div class="training-item">
-            <div class="training-time">02</div>
-            <div class="training-details">
-              <h3>Was möchtest du verbessern?</h3>
-              <p>Wähle einen konkreten Punkt statt vieler auf einmal.</p>
-            </div>
-          </div>
-
-          <div class="training-item">
-            <div class="training-time">03</div>
-            <div class="training-details">
-              <h3>Was probierst du als Nächstes?</h3>
-              <p>Leite eine kleine, umsetzbare Trainingsidee ab.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
     </div>
   `;
 }
 
-/* ---------- 10. SEITE: SPIELERPROFIL ---------- */
+/* ---------- 8. SEITE: SPIELERPROFIL ---------- */
 
 function renderProfile() {
   const profile = state.profile;
 
+  const positions = [
+    "Außenverteidiger",
+    "Innenverteidiger",
+    "Defensives Mittelfeld",
+    "Zentrales Mittelfeld",
+    "Offensives Mittelfeld",
+    "Flügelspieler",
+    "Stürmer",
+    "Torwart"
+  ];
+
   return `
     <div class="page">
-
       <div class="page-heading">
         <div>
-          <h2>Dein Spielerprofil</h2>
-          <p>Deine Angaben bilden die Grundlage für spätere Personalisierung.</p>
+          <h2>Spielerprofil</h2>
+          <p>Diese Angaben werden für spätere Personalisierung verwendet.</p>
         </div>
       </div>
 
@@ -922,28 +690,22 @@ function renderProfile() {
             <h3 class="profile-name">${escapeHTML(profile.name)}</h3>
             <p class="card-subtitle">
               ${escapeHTML(profile.position)} ·
-              ${escapeHTML(profile.club || "Verein noch nicht eingetragen")}
+              ${escapeHTML(profile.club || "Kein Verein eingetragen")}
             </p>
             <div class="profile-meta">
               <span class="badge">${escapeHTML(profile.season)}</span>
-              <span class="badge badge-lime">Spielerprofil</span>
             </div>
           </div>
         </div>
       </section>
 
       <section class="card">
-        <div class="card-header">
-          <div>
-            <h3 class="card-title">Profildaten bearbeiten</h3>
-            <p class="card-subtitle">
-              Die Angaben werden nur in diesem Browser gespeichert.
-            </p>
-          </div>
-        </div>
+        <h3 class="card-title">Profildaten bearbeiten</h3>
+        <p class="card-subtitle">
+          Deine Angaben werden lokal in diesem Browser gespeichert.
+        </p>
 
-        <form class="form" id="profile-form">
-
+        <form class="form" id="profile-form" style="margin-top:20px">
           <div class="form-group">
             <label class="form-label" for="profile-name">Vorname</label>
             <input class="input"
@@ -957,16 +719,7 @@ function renderProfile() {
           <div class="form-group">
             <label class="form-label" for="profile-position">Position</label>
             <select class="select" id="profile-position" name="position">
-              ${[
-                "Außenverteidiger",
-                "Innenverteidiger",
-                "Defensives Mittelfeld",
-                "Zentrales Mittelfeld",
-                "Offensives Mittelfeld",
-                "Flügelspieler",
-                "Stürmer",
-                "Torwart"
-              ].map(position => `
+              ${positions.map(position => `
                 <option value="${escapeHTML(position)}"
                   ${profile.position === position ? "selected" : ""}>
                   ${escapeHTML(position)}
@@ -996,18 +749,12 @@ function renderProfile() {
           <div class="form-group">
             <label class="form-label" for="profile-foot">Stärkerer Fuß</label>
             <select class="select" id="profile-foot" name="preferredFoot">
-              <option value="Rechts"
-                ${profile.preferredFoot === "Rechts" ? "selected" : ""}>
-                Rechts
-              </option>
-              <option value="Links"
-                ${profile.preferredFoot === "Links" ? "selected" : ""}>
-                Links
-              </option>
-              <option value="Beidfüßig"
-                ${profile.preferredFoot === "Beidfüßig" ? "selected" : ""}>
-                Beidfüßig
-              </option>
+              ${["Rechts", "Links", "Beidfüßig"].map(foot => `
+                <option value="${foot}"
+                  ${profile.preferredFoot === foot ? "selected" : ""}>
+                  ${foot}
+                </option>
+              `).join("")}
             </select>
           </div>
 
@@ -1024,20 +771,16 @@ function renderProfile() {
             Profil speichern
           </button>
 
-          <button class="btn btn-danger"
-                  type="button"
-                  data-action="reset-data">
-            Alle lokalen App-Daten zurücksetzen
+          <button class="btn btn-danger" type="button" data-action="reset-data">
+            Lokale App-Daten zurücksetzen
           </button>
-
         </form>
       </section>
-
     </div>
   `;
 }
 
-/* ---------- 11. ROUTER UND RENDERING ---------- */
+/* ---------- 9. SEITEN-ROUTER ---------- */
 
 const PAGE_RENDERERS = {
   today: renderToday,
@@ -1049,26 +792,22 @@ const PAGE_RENDERERS = {
 };
 
 function renderPage() {
-  document.querySelector(".loading-panel")?.remove();
   const route = getRoute();
   const page = ROUTES[route];
-  const content = document.getElementById("page-content");
+
+  document.querySelector(".loading-panel")?.remove();
+
   const title = document.getElementById("page-title");
   const eyebrow = document.getElementById("page-eyebrow");
   const date = document.getElementById("current-date");
   const avatar = document.getElementById("player-avatar");
 
-  if (!content) {
-    console.error("AllCoach: #page-content fehlt in index.html.");
-    return;
-  }
-
   if (title) title.textContent = page.title;
   if (eyebrow) eyebrow.textContent = page.eyebrow;
-  if (date) date.textContent = getTodayLabel();
+  if (date) date.textContent = getDateLabel();
   if (avatar) avatar.textContent = getInitials(state.profile.name);
 
-  content.innerHTML = PAGE_RENDERERS[route]();
+  root.innerHTML = PAGE_RENDERERS[route]();
 
   document.querySelectorAll("[data-route]").forEach(link => {
     const active = link.dataset.route === route;
@@ -1084,35 +823,35 @@ function renderPage() {
 
   if (route === "coach") {
     const messages = document.getElementById("chat-messages");
-    if (messages) messages.scrollTop = messages.scrollHeight;
+
+    if (messages) {
+      messages.scrollTop = messages.scrollHeight;
+    }
   }
 }
 
 function navigate(route) {
-  if (!Object.hasOwn(ROUTES, route)) return;
+  if (!isValidRoute(route)) return;
+
   window.location.hash = `/${route}`;
 }
 
-/* ---------- 12. AKTIONEN ---------- */
+/* ---------- 10. AKTIONEN ---------- */
 
 function completeWorkout() {
   const today = new Date().toDateString();
 
   if (state.lastCompletedDate === today) {
-    showToast("Diese Einheit ist für heute bereits markiert.");
+    showToast("Heute wurde bereits eine Einheit erfasst.");
     return;
   }
 
-  state.completedSessions = Math.max(
-    0,
-    Number(state.completedSessions) || 0
-  ) + 1;
-
+  state.completedSessions += 1;
   state.lastCompletedDate = today;
 
-  saveState();
+  persist();
   renderPage();
-  showToast("Einheit als abgeschlossen gespeichert.");
+  showToast("Trainingseinheit erfasst.");
 }
 
 function saveReflection() {
@@ -1120,39 +859,44 @@ function saveReflection() {
 
   if (!field) return;
 
-  state.lastReflection = field.value.trim();
-  saveState();
-  showToast("Deine Reflexion wurde gespeichert.");
+  state.lastReflection = field.value.trim().slice(0, 2000);
+
+  persist();
+  showToast("Reflexion gespeichert.");
 }
 
 function saveProfile(form) {
-  const formData = new FormData(form);
+  const data = new FormData(form);
 
   state.profile = {
     ...state.profile,
-    name: String(formData.get("name") || "Spieler").trim(),
-    position: String(formData.get("position") || "Außenverteidiger"),
-    club: String(formData.get("club") || "").trim(),
-    season: String(formData.get("season") || "2026/27").trim(),
-    preferredFoot: String(formData.get("preferredFoot") || "Rechts"),
-    mainGoal: String(formData.get("mainGoal") || "").trim()
+    name: String(data.get("name") || "Spieler").trim(),
+    position: String(data.get("position") || "Außenverteidiger"),
+    club: String(data.get("club") || "").trim(),
+    season: String(data.get("season") || "2026/27").trim(),
+    preferredFoot: String(data.get("preferredFoot") || "Rechts"),
+    mainGoal: String(data.get("mainGoal") || "").trim()
   };
 
-  saveState();
+  persist();
   renderPage();
   showToast("Spielerprofil gespeichert.");
 }
 
 function saveRatings(form) {
-  const formData = new FormData(form);
+  const data = new FormData(form);
 
   for (const key of Object.keys(state.ratings)) {
-    state.ratings[key] = clamp(formData.get(key), 1, 10);
+    state.ratings[key] = clamp(
+      data.get(key),
+      LIMITS.minRating,
+      LIMITS.maxRating
+    );
   }
 
-  saveState();
+  persist();
   renderPage();
-  showToast("Deine Einschätzung wurde gespeichert.");
+  showToast("Einschätzungen gespeichert.");
 }
 
 function sendCoachMessage(message) {
@@ -1160,8 +904,8 @@ function sendCoachMessage(message) {
 
   if (!cleanMessage) return;
 
-  if (cleanMessage.length > 1000) {
-    showToast("Die Nachricht darf höchstens 1000 Zeichen enthalten.");
+  if (cleanMessage.length > LIMITS.maxChatCharacters) {
+    showToast("Die Nachricht ist zu lang.");
     return;
   }
 
@@ -1175,64 +919,56 @@ function sendCoachMessage(message) {
     text: getCoachReply(cleanMessage)
   });
 
-  // Chat-Verlauf begrenzen, damit der Browser-Speicher klein bleibt.
-  state.chatHistory = state.chatHistory.slice(-30);
+  state.chatHistory = state.chatHistory.slice(
+    -LIMITS.maxChatMessages
+  );
 
-  saveState();
+  persist();
   renderPage();
 
-  const input = document.getElementById("coach-input");
-  if (input) input.focus();
+  document.getElementById("coach-input")?.focus();
 }
 
-function updateGoal(goalId, difference) {
+function updateGoal(goalId, amount) {
   const goal = state.goals.find(item => item.id === goalId);
 
   if (!goal) return;
 
-  goal.progress = clamp(goal.progress + difference, 0, 100);
+  goal.progress = clamp(goal.progress + amount, 0, 100);
 
-  saveState();
+  persist();
   renderPage();
-  showToast("Ziel-Fortschritt aktualisiert.");
+  showToast("Fortschritt aktualisiert.");
 }
 
 function resetData() {
   const confirmed = window.confirm(
-    "Möchtest du wirklich alle lokal gespeicherten AllCoach-Daten löschen?"
+    "Möchtest du alle lokal gespeicherten AllCoach-Daten löschen?"
   );
 
   if (!confirmed) return;
 
-  state = cloneDefaults();
-  state.lastCompletedDate = "";
-  saveState();
+  clearState();
+  state = createDefaultState();
+
+  persist();
   renderPage();
-  showToast("Lokale Daten wurden zurückgesetzt.");
+  showToast("App-Daten zurückgesetzt.");
 }
 
-/* ---------- 13. EVENTS ---------- */
+/* ---------- 11. ZENTRALE EVENTS ---------- */
 
-// Navigation über die Hash-URL
-window.addEventListener("hashchange", renderPage);
-
-// Aktionen über Buttons: ein zentraler Event-Handler
 document.addEventListener("click", event => {
-  const routeLink = event.target.closest("[data-route]");
-
-  if (routeLink) {
-    // Der normale Link ändert den Hash.
-    return;
-  }
-
   const promptButton = event.target.closest("[data-prompt]");
 
   if (promptButton) {
     const prompt = promptButton.dataset.prompt;
+
     navigate("coach");
 
     window.setTimeout(() => {
       const input = document.getElementById("coach-input");
+
       if (input) {
         input.value = prompt;
         input.focus();
@@ -1259,11 +995,11 @@ document.addEventListener("click", event => {
       saveReflection();
       break;
 
-    case "increase-goal":
+    case "goal-up":
       updateGoal(actionButton.dataset.goalId, 5);
       break;
 
-    case "decrease-goal":
+    case "goal-down":
       updateGoal(actionButton.dataset.goalId, -5);
       break;
 
@@ -1279,7 +1015,6 @@ document.addEventListener("click", event => {
   }
 });
 
-// Formulare innerhalb der dynamischen Seiten
 document.addEventListener("submit", event => {
   const form = event.target;
 
@@ -1300,12 +1035,11 @@ document.addEventListener("submit", event => {
       event.preventDefault();
 
       const input = document.getElementById("coach-input");
-      if (!input) return;
 
-      const message = input.value;
-      if (!message.trim()) return;
+      if (input && input.value.trim()) {
+        sendCoachMessage(input.value);
+      }
 
-      sendCoachMessage(message);
       break;
     }
 
@@ -1314,7 +1048,6 @@ document.addEventListener("submit", event => {
   }
 });
 
-// Live-Anzeige der Selbsteinschätzung
 document.addEventListener("input", event => {
   const input = event.target;
 
@@ -1328,23 +1061,27 @@ document.addEventListener("input", event => {
   }
 });
 
-/* ---------- 14. APP STARTEN ---------- */
+/* ---------- 12. START ---------- */
 
 function startApp() {
+  console.info(
+    `${APP_CONFIG.name} v${APP_CONFIG.version} wird gestartet.`
+  );
+
   if (!window.location.hash) {
     window.location.hash = `/${APP_CONFIG.defaultRoute}`;
     return;
   }
 
   renderPage();
-
-  console.info(
-    `${APP_CONFIG.name} v${APP_CONFIG.version} gestartet.`
-  );
 }
 
+window.addEventListener("hashchange", renderPage);
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", startApp, { once: true });
+  document.addEventListener("DOMContentLoaded", startApp, {
+    once: true
+  });
 } else {
   startApp();
 }
